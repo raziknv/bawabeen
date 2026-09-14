@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Division Registration System</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --ink:#17233A; --ink-soft:#4A5A73; --paper:#F5F4EF; --surface:#FFFFFF;
+    --brass:#A97E2F; --brass-deep:#8A6623; --line:#DBD6C8;
+    --good:#3F7A5C; --good-bg:#EAF3EE; --bad:#B23A32; --bad-bg:#FBECEA;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;font-weight:600;color:var(--ink);margin:0;}
+  a{color:var(--brass-deep);}
+  #app{max-width:1080px;margin:0 auto;padding:32px 24px 80px;}
+  .eyebrow{color:var(--ink-soft);font-size:13px;letter-spacing:.02em;margin:0 0 6px;}
+  .top-bar{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px;flex-wrap:wrap;gap:10px;}
+  .top-bar h1{font-size:25px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:24px;}
+  .gate{max-width:380px;margin:60px auto;text-align:left;}
+  .gate p{color:var(--ink-soft);font-size:14px;margin-top:6px;}
+  label{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:6px;}
+  input[type=text],input[type=password],input[type=tel],select,textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:2px;
+    font-size:15px;font-family:inherit;background:#fff;color:var(--ink);margin-bottom:16px;
+  }
+  select{appearance:none;background-image:linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);background-position:calc(100% - 18px) center, calc(100% - 13px) center;background-size:5px 5px, 5px 5px;background-repeat:no-repeat;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--brass);outline-offset:1px;border-color:var(--brass);}
+  button{font-family:inherit;font-size:14px;font-weight:600;padding:10px 18px;border-radius:2px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;}
+  button:hover{background:#26365A;}
+  button.secondary{background:transparent;color:var(--ink);border-color:var(--line);}
+  button.secondary:hover{border-color:var(--brass);color:var(--brass-deep);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .error-msg{color:var(--bad);background:var(--bad-bg);padding:10px 12px;border-radius:2px;font-size:14px;margin-bottom:14px;}
+  .success-msg{color:var(--good);background:var(--good-bg);padding:10px 12px;border-radius:2px;font-size:14px;margin-bottom:14px;}
+  .div-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:20px;}
+  .div-card{border:1px solid var(--line);background:var(--surface);padding:18px;border-radius:3px;}
+  .div-card .num{font-size:12px;color:var(--ink-soft);}
+  .div-card h3{font-size:17px;margin:2px 0 12px;}
+  .qr-box{background:#fff;padding:8px;border:1px solid var(--line);display:inline-block;margin-bottom:10px;}
+  .field-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .field-row input{margin-bottom:0;flex:1;font-size:13px;padding:7px 9px;letter-spacing:2px;}
+  .link-row{font-size:12px;color:var(--ink-soft);word-break:break-all;margin:6px 0 10px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .btn-row a, .btn-row button{font-size:12.5px;padding:7px 11px;text-decoration:none;}
+  table{width:100%;border-collapse:collapse;margin-top:18px;font-size:13.5px;}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th{color:var(--ink-soft);font-weight:600;font-size:12px;}
+  .table-wrap{overflow-x:auto;}
+  .section-title{margin:44px 0 4px;}
+  .section-sub{color:var(--ink-soft);font-size:14px;margin-bottom:4px;}
+  .voice-play-wrap{text-align:center;padding:70px 20px;}
+  .play-btn{width:120px;height:120px;border-radius:50%;background:var(--ink);color:#fff;border:none;font-size:38px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .play-btn:hover{background:#26365A;}
+  .muted{color:var(--ink-soft);font-size:14px;}
+  .footer-link{display:block;margin-top:28px;font-size:13px;color:var(--ink-soft);text-decoration:none;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin:-8px 0 16px;font-size:13.5px;color:var(--ink-soft);}
+  .checkbox-row input{width:auto;margin:0;}
+  .bulk-row{margin:14px 0 0;}
+</style>
+</head>
+<body>
+<div id="app"><p class="muted" style="padding:40px;">Loading…</p></div>
+
+<script>
+const DESIGNATIONS = [
+  'DIVISION - PRESIDENT','DIVISION - GENERAL SECRETARY','DIVISION - FINANCE SECRETARY','DIVISION - VICE PRESIDENT',
+  'DIVISION - SECRETARY-ADMIN & IT','DIVISION - SECRETARY-KNOWLEDGE & MORAL EDUCATION','DIVISION - SECRETARY-ORGANIZING & TRAINING',
+  'DIVISION - SECRETARY-PR & MEDIA','DIVISION - SECRETARY-PUBLICATION','DIVISION - SECRETARY-THAZKIYA','DIVISION - SECRETARY-WELFARE & SERVICE',
+  'DIVISION - SENATOR','UNIT - FINANCE SECRETARY','UNIT - GENERAL SECRETARY','UNIT - MEMBER - CABINET','UNIT - PRESIDENT',
+  'UNIT - SECRETARY - SDC','UNIT - SECRETARY-ADMIN & IT','UNIT - SECRETARY-KNOWLEDGE & MORAL EDUCATION','UNIT - SECRETARY-ORGANIZING & TRAINING',
+  'UNIT - SECRETARY-PR & MEDIA','UNIT - SECRETARY-PUBLICATION','UNIT - SECRETARY-THAZKIYA','UNIT - SECRETARY-WELFARE & SERVICE','UNIT - VICE PRESIDENT'
+];
+
+const params = new URLSearchParams(window.location.search);
+const baseUrl = window.location.origin + window.location.pathname;
+const app = document.getElementById('app');
+let unlockedMaster = false;
+let unlockedDivisions = {};
+let sb = null;
+
+function esc(s){ const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+function genPasscode(){ return String(Math.floor(1000 + Math.random()*9000)); }
+
+function drawQR(elId, text, size){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  el.innerHTML = '';
+  new QRCode(el, { text: text, width: size||110, height: size||110, colorDark:'#17233A', colorLight:'#ffffff' });
+}
+function downloadQR(containerId, filename){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const canvas = el.querySelector('canvas');
+  const img = el.querySelector('img');
+  const src = canvas ? canvas.toDataURL('image/png') : (img ? img.src : null);
+  if(!src) return;
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function exportRows(filename, rows){
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Registrations');
+  XLSX.writeFile(wb, filename);
+}
+
+/* ---------- SUPABASE HELPERS ---------- */
+async function getAllDivisions(){
+  const { data, error } = await sb.from('divisions').select('*').order('name');
+  if(error) throw error;
+  return data;
+}
+async function getDivision(slug){
+  const { data, error } = await sb.from('divisions').select('*').eq('slug', slug).maybeSingle();
+  if(error) throw error;
+  return data;
+}
+async function updatePasscode(slug, passcode){
+  const { error } = await sb.from('divisions').update({ passcode }).eq('slug', slug);
+  if(error) throw error;
+}
+async function getMasterPassword(){
+  const { data } = await sb.from('settings').select('value').eq('key','master_password').maybeSingle();
+  return data ? data.value : 'admin-2026';
+}
+async function setMasterPassword(v){
+  await sb.from('settings').upsert({ key:'master_password', value:v });
+}
+async function getRegistrations(slug){
+  const { data, error } = await sb.from('registrations').select('*').eq('division_slug', slug).order('created_at', { ascending:true });
+  if(error) throw error;
+  return data;
+}
+async function addRegistration(slug, entry){
+  const { error } = await sb.from('registrations').insert({
+    division_slug: slug, name: entry.name, mobile: entry.mobile,
+    whatsapp: entry.whatsapp, unit: entry.unit, designation: entry.designation
+  });
+  if(error) throw error;
+}
+async function getVoice(){
+  const { data } = await sb.from('voice_announcement').select('*').eq('id',1).maybeSingle();
+  return data;
+}
+async function saveVoiceRow(obj){
+  const { error } = await sb.from('voice_announcement').upsert({ id:1, title:obj.title, mime:obj.mime, data:obj.data, updated_at:new Date().toISOString() });
+  if(error) throw error;
+}
+
+/* ---------- HOME / MASTER DASHBOARD ---------- */
+async function renderHome(){
+  if(!unlockedMaster){
+    app.innerHTML = `
+      <div class="gate card">
+        <p class="eyebrow">Organizer access</p>
+        <h2>Division Registration System</h2>
+        <p>Enter the master password to manage all divisions and the voice announcement.</p>
+        <div id="err"></div>
+        <label for="mp">Master password</label>
+        <input type="password" id="mp">
+        <button id="mpBtn">Unlock</button>
+      </div>`;
+    document.getElementById('mpBtn').onclick = async () => {
+      const val = document.getElementById('mp').value;
+      const mp = await getMasterPassword();
+      if(val === mp){ unlockedMaster = true; renderHome(); }
+      else document.getElementById('err').innerHTML = '<div class="error-msg">Incorrect password.</div>';
+    };
+    return;
+  }
+
+  const divisions = await getAllDivisions();
+  const voice = await getVoice();
+
+  app.innerHTML = `
+    <div class="top-bar"><div><p class="eyebrow">Organizer dashboard</p><h1>Division Registration System</h1></div></div>
+
+    <h2 class="section-title">Voice announcement</h2>
+    <p class="section-sub">One QR code that plays a pre-recorded message to whoever scans it.</p>
+    <div class="div-card" style="max-width:420px;">
+      <div class="qr-box"><div id="qr-voice"></div></div>
+      <div class="link-row">${esc(baseUrl)}?voice=1</div>
+      <p class="muted" style="margin:8px 0;">${voice ? 'Uploaded: "' + esc(voice.title||'Untitled') + '"' : 'No announcement uploaded yet.'}</p>
+      <div class="btn-row">
+        <button class="secondary" id="dl-qr-voice">Download QR</button>
+        <a class="secondary" href="${esc(baseUrl)}?voice=1" target="_blank"><button class="secondary">Preview page</button></a>
+        <a href="${esc(baseUrl)}?voiceadmin=1" target="_blank"><button>${voice?'Replace message':'Upload message'}</button></a>
+      </div>
+    </div>
+
+    <h2 class="section-title">Master password</h2>
+    <div class="div-card" style="max-width:420px;">
+      <div class="field-row">
+        <input type="password" id="newMasterPw" placeholder="New master password">
+        <button class="secondary" id="saveMasterPw">Save</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">All registrations</h2>
+    <p class="section-sub">One workbook combining every division, with a Division column.</p>
+    <button class="secondary" id="exportAllBtn">Download combined Excel file</button>
+
+    <h2 class="section-title">Divisions (${divisions.length})</h2>
+    <p class="section-sub">Each card is one QR code leading straight to that division's form — the address is the same for every division except for the short tag at the end (<code>?d=saham</code>, <code>?d=falaj</code>, etc.), which is what tells the system which division a registration belongs to. The incharge opens the same link, taps "Incharge login," and enters the 4-digit passcode shown here.</p>
+    <button class="secondary bulk-row" id="dlAllQrBtn">Download all 25 QR codes</button>
+    <div class="div-grid" id="divGrid"></div>
+  `;
+
+  document.getElementById('saveMasterPw').onclick = async () => {
+    const v = document.getElementById('newMasterPw').value.trim();
+    if(!v) return;
+    await setMasterPassword(v);
+    document.getElementById('newMasterPw').value = '';
+    alert('Master password updated.');
+  };
+
+  document.getElementById('exportAllBtn').onclick = async () => {
+    const btn = document.getElementById('exportAllBtn');
+    btn.disabled = true; btn.textContent = 'Gathering…';
+    const { data, error } = await sb.from('registrations').select('*, divisions(name)').order('created_at');
+    if(error || !data || data.length === 0){
+      alert('No registrations yet.');
+      btn.disabled = false; btn.textContent = 'Download combined Excel file';
+      return;
+    }
+    const rows = data.map(r => ({
+      Division: r.divisions ? r.divisions.name : r.division_slug,
+      Name: r.name, 'Mobile No': r.mobile, 'WhatsApp No': r.whatsapp,
+      Unit: r.unit, Designation: r.designation, 'Submitted At': new Date(r.created_at).toLocaleString()
+    }));
+    exportRows('all_divisions_registrations.xlsx', rows);
+    btn.disabled = false; btn.textContent = 'Download combined Excel file';
+  };
+
+  drawQR('qr-voice', baseUrl + '?voice=1', 110);
+  document.getElementById('dl-qr-voice').onclick = () => downloadQR('qr-voice', 'Voice_Announcement_QR.png');
+
+  const grid = document.getElementById('divGrid');
+  divisions.forEach((d, idx) => {
+    const slug = d.slug;
+    const link = baseUrl + '?d=' + slug;
+    const wrap = document.createElement('div');
+    wrap.className = 'div-card';
+    wrap.innerHTML = `
+      <div class="num">${String(idx+1).padStart(2,'0')} / ${divisions.length}</div>
+      <h3>${esc(d.name)}</h3>
+      <div class="qr-box"><div id="qr-${slug}"></div></div>
+      <div class="link-row">${esc(link)}</div>
+      <label style="margin-bottom:4px;">Incharge passcode</label>
+      <div class="field-row">
+        <input type="text" id="pw-${slug}" value="${esc(d.passcode)}" maxlength="4" inputmode="numeric">
+        <button class="secondary" id="save-pw-${slug}">Set</button>
+        <button class="secondary" id="regen-pw-${slug}">Regenerate</button>
+      </div>
+      <div class="btn-row">
+        <button class="secondary" id="dl-qr-${slug}">Download QR</button>
+        <a href="${esc(link)}" target="_blank"><button class="secondary">Open form</button></a>
+        <a href="${esc(link)}&admin=1" target="_blank"><button class="secondary">Open incharge view</button></a>
+      </div>
+    `;
+    grid.appendChild(wrap);
+    drawQR('qr-' + slug, link, 110);
+    document.getElementById('dl-qr-'+slug).onclick = () => downloadQR('qr-'+slug, d.name.replace(/\s+/g,'_') + '_QR.png');
+
+    document.getElementById('save-pw-'+slug).onclick = async () => {
+      const v = document.getElementById('pw-'+slug).value.trim();
+      if(!/^\d{4}$/.test(v)){ alert('Passcode must be exactly 4 digits.'); return; }
+      await updatePasscode(slug, v);
+      alert('Passcode updated for ' + d.name + '.');
+    };
+    document.getElementById('regen-pw-'+slug).onclick = async () => {
+      const nv = genPasscode();
+      await updatePasscode(slug, nv);
+      document.getElementById('pw-'+slug).value = nv;
+    };
+  });
+
+  document.getElementById('dlAllQrBtn').onclick = async () => {
+    const btn = document.getElementById('dlAllQrBtn');
+    btn.disabled = true; btn.textContent = 'Preparing…';
+    for(const d of divisions){
+      downloadQR('qr-' + d.slug, d.name.replace(/\s+/g,'_') + '_QR.png');
+      await new Promise(r => setTimeout(r, 250));
+    }
+    btn.disabled = false; btn.textContent = 'Download all 25 QR codes';
+  };
+}
+
+/* ---------- PUBLIC REGISTRATION FORM ---------- */
+async function renderDivisionPublic(slug){
+  const d = await getDivision(slug);
+  if(!d){ app.innerHTML = '<div class="card gate"><h2>Link not recognized</h2><p class="muted">This division link is invalid.</p></div>'; return; }
+
+  app.innerHTML = `
+    <div class="top-bar"><div><p class="eyebrow">Registration</p><h1>${esc(d.name)}</h1></div></div>
+    <div id="msg"></div>
+    <div class="card" style="max-width:480px;">
+      <label for="rname">Name</label>
+      <input type="text" id="rname">
+      <label for="rmobile">Mobile No</label>
+      <input type="tel" id="rmobile">
+      <label for="rwhatsapp">WhatsApp No</label>
+      <input type="tel" id="rwhatsapp">
+      <div class="checkbox-row"><input type="checkbox" id="sameNum"><label for="sameNum" style="margin:0;">Same as mobile number</label></div>
+      <label for="runit">Unit</label>
+      <select id="runit">
+        <option value="">Select unit</option>
+        ${d.units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('')}
+      </select>
+      <label for="rdesig">Designation</label>
+      <select id="rdesig">
+        <option value="">Select designation</option>
+        ${DESIGNATIONS.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}
+      </select>
+      <button id="submitBtn">Submit registration</button>
+    </div>
+    <a class="footer-link" href="${esc(baseUrl)}?d=${slug}&admin=1">Incharge login — view registrations</a>
+  `;
+
+  const mobileEl = document.getElementById('rmobile');
+  const whatsEl = document.getElementById('rwhatsapp');
+  document.getElementById('sameNum').onchange = (e) => {
+    if(e.target.checked){ whatsEl.value = mobileEl.value; whatsEl.disabled = true; }
+    else { whatsEl.disabled = false; }
+  };
+  mobileEl.oninput = () => { if(document.getElementById('sameNum').checked) whatsEl.value = mobileEl.value; };
+
+  document.getElementById('submitBtn').onclick = async () => {
+    const name = document.getElementById('rname').value.trim();
+    const mobile = mobileEl.value.trim();
+    const whatsapp = whatsEl.value.trim();
+    const unit = document.getElementById('runit').value;
+    const designation = document.getElementById('rdesig').value;
+    const msg = document.getElementById('msg');
+    if(!name || !mobile || !unit || !designation){
+      msg.innerHTML = '<div class="error-msg">Please fill in name, mobile number, unit, and designation.</div>';
+      return;
+    }
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Submitting…';
+    try{
+      await addRegistration(slug, { name, mobile, whatsapp, unit, designation });
+      app.querySelector('.card').innerHTML = '<h2>Registered</h2><p class="muted">Thank you, ' + esc(name) + '. Your registration for ' + esc(d.name) + ' has been recorded.</p>';
+      msg.innerHTML = '';
+    }catch(e){
+      msg.innerHTML = '<div class="error-msg">Something went wrong. Please try again.</div>';
+      btn.disabled = false; btn.textContent = 'Submit registration';
+    }
+  };
+}
+
+/* ---------- DIVISION INCHARGE (ADMIN) VIEW ---------- */
+async function renderDivisionAdmin(slug){
+  const d = await getDivision(slug);
+  if(!d){ app.innerHTML = '<div class="card gate"><h2>Link not recognized</h2></div>'; return; }
+
+  if(!unlockedDivisions[slug]){
+    app.innerHTML = `
+      <div class="gate card">
+        <p class="eyebrow">${esc(d.name)}</p>
+        <h2>Incharge login</h2>
+        <p>Enter the 4-digit passcode for this division.</p>
+        <div id="err"></div>
+        <label for="dp">Passcode</label>
+        <input type="text" id="dp" maxlength="4" inputmode="numeric">
+        <button id="dpBtn">Unlock</button>
+      </div>`;
+    document.getElementById('dpBtn').onclick = () => {
+      const val = document.getElementById('dp').value.trim();
+      if(val === d.passcode){ unlockedDivisions[slug] = true; renderDivisionAdmin(slug); }
+      else document.getElementById('err').innerHTML = '<div class="error-msg">Incorrect passcode.</div>';
+    };
+    return;
+  }
+
+  const rows = await getRegistrations(slug);
+  app.innerHTML = `
+    <div class="top-bar">
+      <div><p class="eyebrow">Incharge view</p><h1>${esc(d.name)}</h1></div>
+      <div class="btn-row">
+        <button class="secondary" id="refreshBtn">Refresh</button>
+        <button class="secondary" id="exportBtn">Download Excel</button>
+      </div>
+    </div>
+    <p class="muted">${rows.length} registration${rows.length===1?'':'s'} so far.</p>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Mobile No</th><th>WhatsApp No</th><th>Unit</th><th>Designation</th><th>Submitted</th></tr></thead>
+      <tbody>
+        ${rows.length ? rows.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.mobile)}</td><td>${esc(r.whatsapp)}</td><td>${esc(r.unit)}</td><td>${esc(r.designation)}</td><td>${esc(new Date(r.created_at).toLocaleString())}</td></tr>`).join('') : '<tr><td colspan="6" class="muted">No registrations yet.</td></tr>'}
+      </tbody>
+    </table>
+    </div>
+    <a class="footer-link" href="${esc(baseUrl)}?d=${slug}">View public registration form</a>
+  `;
+  document.getElementById('refreshBtn').onclick = () => renderDivisionAdmin(slug);
+  document.getElementById('exportBtn').onclick = () => {
+    const data = rows.map(r => ({ Division: d.name, Name:r.name, 'Mobile No':r.mobile, 'WhatsApp No':r.whatsapp, Unit:r.unit, Designation:r.designation, 'Submitted At': new Date(r.created_at).toLocaleString() }));
+    exportRows(d.name.replace(/\s+/g,'_') + '_registrations.xlsx', data);
+  };
+}
+
+/* ---------- VOICE PLAYBACK ---------- */
+async function renderVoicePlayback(){
+  const voice = await getVoice();
+  if(!voice || !voice.data){
+    app.innerHTML = `<div class="voice-play-wrap"><h2>No announcement yet</h2><p class="muted">Check back soon.</p></div>`;
+    return;
+  }
+  app.innerHTML = `
+    <div class="voice-play-wrap">
+      <p class="eyebrow">${esc(voice.title || 'Announcement')}</p>
+      <h1 style="margin-bottom:24px;">Tap to listen</h1>
+      <button class="play-btn" id="playBtn">&#9658;</button>
+      <audio id="player" src="data:${voice.mime};base64,${voice.data}"></audio>
+      <p class="muted" style="margin-top:22px;">Turn your volume up before you tap play.</p>
+    </div>
+  `;
+  const audio = document.getElementById('player');
+  document.getElementById('playBtn').onclick = () => {
+    if(audio.paused){ audio.play(); document.getElementById('playBtn').innerHTML = '&#10074;&#10074;'; }
+    else { audio.pause(); document.getElementById('playBtn').innerHTML = '&#9658;'; }
+  };
+  audio.onended = () => { document.getElementById('playBtn').innerHTML = '&#9658;'; };
+}
+
+/* ---------- VOICE UPLOAD (ADMIN) ---------- */
+async function renderVoiceAdmin(){
+  if(!unlockedMaster){
+    app.innerHTML = `
+      <div class="gate card">
+        <p class="eyebrow">Organizer access</p>
+        <h2>Upload announcement</h2>
+        <div id="err"></div>
+        <label for="mp">Master password</label>
+        <input type="password" id="mp">
+        <button id="mpBtn">Unlock</button>
+      </div>`;
+    document.getElementById('mpBtn').onclick = async () => {
+      const val = document.getElementById('mp').value;
+      const mp = await getMasterPassword();
+      if(val === mp){ unlockedMaster = true; renderVoiceAdmin(); }
+      else document.getElementById('err').innerHTML = '<div class="error-msg">Incorrect password.</div>';
+    };
+    return;
+  }
+
+  const voice = await getVoice();
+  app.innerHTML = `
+    <div class="top-bar"><div><p class="eyebrow">Organizer</p><h1>Voice announcement</h1></div></div>
+    <div id="msg"></div>
+    <div class="card" style="max-width:480px;">
+      ${voice ? '<p class="muted">Current: "' + esc(voice.title||'Untitled') + '" — uploading a new file replaces it.</p>' : '<p class="muted">No announcement uploaded yet.</p>'}
+      <label for="vtitle">Title</label>
+      <input type="text" id="vtitle" value="${voice ? esc(voice.title||'') : ''}" placeholder="e.g. Welcome message">
+      <label for="vfile">Audio file (mp3 or m4a, keep under ~4 minutes)</label>
+      <input type="file" id="vfile" accept="audio/*">
+      <button id="upBtn">Save announcement</button>
+    </div>
+    <a class="footer-link" href="${esc(baseUrl)}?voice=1" target="_blank">Preview playback page</a>
+  `;
+  document.getElementById('upBtn').onclick = () => {
+    const file = document.getElementById('vfile').files[0];
+    const title = document.getElementById('vtitle').value.trim() || 'Announcement';
+    const msg = document.getElementById('msg');
+    if(!file){ msg.innerHTML = '<div class="error-msg">Choose an audio file first.</div>'; return; }
+    if(file.size > 4.5 * 1024 * 1024){ msg.innerHTML = '<div class="error-msg">File is too large. Keep it under ~4.5MB (a few minutes of compressed audio).</div>'; return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
+      try{
+        await saveVoiceRow({ mime: file.type || 'audio/mpeg', data: base64, title });
+        msg.innerHTML = '<div class="success-msg">Announcement saved.</div>';
+      }catch(e){
+        msg.innerHTML = '<div class="error-msg">Save failed: ' + esc(e.message||'unknown error') + '</div>';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+}
+
+/* ---------- ROUTER ---------- */
+(async function init(){
+  if(typeof SUPABASE_URL === 'undefined' || SUPABASE_URL.indexOf('YOUR-PROJECT') !== -1){
+    app.innerHTML = '<div class="card gate"><h2>Setup needed</h2><p class="muted">Open <code>config.js</code> and paste in your Supabase project URL and anon key, then reload this page. See README.md for the full setup steps.</p></div>';
+    return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  try{
+    if(params.has('voice')) return await renderVoicePlayback();
+    if(params.has('voiceadmin')) return await renderVoiceAdmin();
+    if(params.has('d')){
+      const slug = params.get('d');
+      if(params.has('admin')) return await renderDivisionAdmin(slug);
+      return await renderDivisionPublic(slug);
+    }
+    return await renderHome();
+  }catch(e){
+    app.innerHTML = '<div class="card gate"><h2>Something went wrong</h2><p class="muted">' + esc(e.message||String(e)) + '</p></div>';
+  }
+})();
+</script>
+</body>
+</html>
